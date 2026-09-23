@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="white">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSQLEX Playground</title>
+<style>
+  :root {
+    --mono: "Adwaita Mono", "DejaVu Sans Mono", ui-monospace, Consolas, monospace;
+    --sans: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  html[data-theme="white"] {
+    --bg:#FFFFFF; --panel:#FFFFFF; --panel-2:#F7F9FB; --border:#D5DDE6; --border-strong:#B9C5D2;
+    --fg:#14243A; --muted:#4E6076; --accent:#2457C5; --accent-ink:#FFFFFF; --teal:#087F72;
+    --ok:#0B7A54; --err:#B42318; --field:#FFFFFF; --focus:#2457C5;
+    --tok-kw:#2457C5; --tok-str:#087F72; --tok-num:#9A4A00; --tok-com:#6B7A90; --tok-fn:#6B21A8;
+  }
+  html[data-theme="soft"] {
+    --bg:#F2F5F8; --panel:#FFFFFF; --panel-2:#EDF1F6; --border:#C9D4E0; --border-strong:#AAB8C8;
+    --fg:#14243A; --muted:#4E6076; --accent:#2457C5; --accent-ink:#FFFFFF; --teal:#087F72;
+    --ok:#0B7A54; --err:#B42318; --field:#FFFFFF; --focus:#2457C5;
+    --tok-kw:#2457C5; --tok-str:#087F72; --tok-num:#9A4A00; --tok-com:#6B7A90; --tok-fn:#6B21A8;
+  }
+  html[data-theme="dark"] {
+    --bg:#0F1420; --panel:#1A2233; --panel-2:#131B2A; --border:#2A3550; --border-strong:#3A4A6E;
+    --fg:#E6EBF5; --muted:#8B98B5; --accent:#5B93FF; --accent-ink:#0B1020; --teal:#2FD4C0;
+    --ok:#3ECF8E; --err:#FF6B6B; --field:#0D1220; --focus:#5B93FF;
+    --tok-kw:#5B93FF; --tok-str:#2FD4C0; --tok-num:#FFB86B; --tok-com:#6B7A90; --tok-fn:#C792EA;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body { font-family:var(--sans); font-size:16px; background:var(--bg); color:var(--fg);
+         line-height:1.45; }
+  :focus-visible { outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+
+  header.top {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:10px 20px; border-bottom:1px solid var(--border); background:var(--panel);
+  }
+  .brand { font-weight:700; font-size:18px; letter-spacing:.02em; }
+  .brand span { color:var(--teal); }
+  .navlinks { display:flex; gap:4px; }
+  .navlinks a { color:var(--muted); text-decoration:none; font-size:14px; padding:5px 12px; border-radius:6px; }
+  .navlinks a[aria-current="page"] { color:var(--fg); font-weight:600; background:var(--panel-2); }
+  .navlinks a:hover { color:var(--accent); }
+  .tag { font-size:13px; color:var(--muted); }
+  .themes { margin-left:auto; display:flex; gap:4px; border:1px solid var(--border); border-radius:8px; padding:3px; background:var(--panel-2); }
+  .themes button { border:0; background:transparent; color:var(--fg); font:inherit; font-size:14px;
+                   padding:5px 14px; border-radius:6px; cursor:pointer; }
+  .themes button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); font-weight:600; }
+
+  main { padding:20px; max-width:1500px; margin:0 auto; }
+  .grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:1000px) { .grid { grid-template-columns:minmax(0,1fr); } main { padding:12px; } }
+
+  h2.pane { margin:0 0 8px; font-size:18px; font-weight:600; }
+  h2.pane small { color:var(--muted); font-weight:400; font-size:14px; margin-left:8px; }
+  .keyhint { font-size:12px; color:var(--muted); margin-top:6px; }
+  .hint { font-size:13px; color:var(--muted); margin-top:8px; line-height:1.5; }
+  .hint code { background:var(--panel-2); border:1px solid var(--border); padding:1px 6px; border-radius:4px; font-family:var(--mono); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
+  button.ghost { background:var(--panel-2); color:var(--fg); border:1px solid var(--border-strong);
+                 border-radius:8px; padding:7px 14px; font:inherit; font-size:14px; cursor:pointer; }
+
+  .editor { position:relative; }
+  .editor pre, .editor textarea {
+    margin:0; font-family:var(--mono); font-size:16px; line-height:1.5; padding:12px;
+    border-radius:8px; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
+    tab-size:2;
+  }
+  .editor pre {
+    position:absolute; inset:0; border:1px solid transparent; overflow:hidden;
+    color:var(--fg); pointer-events:none; z-index:0;
+  }
+  .editor textarea {
+    position:relative; z-index:1; display:block; width:100%; min-height:140px;
+    background:transparent; color:transparent; caret-color:var(--fg);
+    border:1px solid var(--border-strong); resize:none; overflow:hidden;
+  }
+  .editor textarea:focus { border-color:var(--accent); }
+  textarea.plain {
+    width:100%; min-height:200px; background:var(--field); color:var(--fg);
+    border:1px solid var(--border-strong); border-radius:8px; padding:12px;
+    font-family:var(--mono); font-size:15px; line-height:1.5; resize:none; overflow:hidden;
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .tok-kw { color:var(--tok-kw); font-weight:600; }
+  .tok-str { color:var(--tok-str); }
+  .tok-num { color:var(--tok-num); }
+  .tok-com { color:var(--tok-com); font-style:italic; }
+  .tok-fn { color:var(--tok-fn); }
+
+  .result {
+    margin-top:12px; border:1px solid var(--border); border-radius:8px; background:var(--panel);
+    padding:14px 16px; min-height:56px;
+  }
+  .result .label { font-size:13px; color:var(--muted); }
+  .result .value { font-family:var(--mono); font-size:22px; font-weight:700; margin-top:4px; word-break:break-all; }
+  .result .type { display:inline-block; font-size:12px; color:var(--teal); border:1px solid var(--border);
+                  border-radius:10px; padding:1px 8px; margin-left:8px; vertical-align:middle; }
+  .result.err { border-color:var(--err); }
+  .result.err .value { font-size:15px; font-weight:600; color:var(--err); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">DSQLEX <span>playground</span></div>
+  <nav class="navlinks" aria-label="Pages">
+    <a href="/">Pipeline</a>
+    <a href="/playground" aria-current="page">Playground</a>
+  </nav>
+  <span class="tag">SQL-style expressions &middot; evaluated locally per keystroke</span>
+  <div class="themes" role="group" aria-label="Theme">
+    <button type="button" data-theme="white" aria-pressed="true">White</button>
+    <button type="button" data-theme="soft" aria-pressed="false">Soft</button>
+    <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+  </div>
+</header>
+<main>
+  <div class="grid">
+    <section aria-labelledby="exprh">
+      <h2 class="pane" id="exprh">Expression <small>SQL-style, evaluated per edit</small></h2>
+      <div class="editor">
+        <pre id="hl" aria-hidden="true"></pre>
+        <textarea id="expr" spellcheck="false" aria-label="Expression"></textarea>
+      </div>
+      <div class="keyhint">Tab indents (4 spaces); Shift+Tab outdents; Esc, then Tab leaves the editor.</div>
+      <div class="row" id="templates" role="group" aria-label="Expression templates"></div>
+      <div class="result" id="result" aria-live="polite">
+        <div class="label">Result</div>
+        <div class="value" id="rvalue">—</div>
+      </div>
+      <div class="hint">Context fields are values on the right; nested objects become dot paths like
+        <code>config.pricing.margin</code>. Numbers keep full decimal precision.</div>
+    </section>
+    <section aria-labelledby="ctxh">
+      <h2 class="pane" id="ctxh">Context <small>JSON object, sent verbatim</small></h2>
+      <textarea id="ctx" class="plain" spellcheck="false" aria-label="Context JSON"></textarea>
+      <div class="keyhint">Tab indents (4 spaces); Shift+Tab outdents; Esc, then Tab leaves the editor.</div>
+      <div class="hint">Keys must be identifiers <code>[A-Za-z_][A-Za-z0-9_]*</code>. Objects nest to dot
+        paths; arrays are not supported. Numbers may use high-precision decimals or e-notation.</div>
+    </section>
+  </div>
+</main>
+<script src="/templates.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const exprEl = $("expr"), ctxEl = $("ctx"), hlEl = $("hl");
+const DEFAULT_EXPR = `CASE
+    WHEN country = 'Brazil' THEN amount * 2
+    ELSE amount
+END`;
+const OLD_DEFAULT_EXPR = "CASE WHEN country = 'Brazil' THEN amount * 2 ELSE amount END";
+const DEFAULT_CTX = `{
+  "country": "Brazil",
+  "amount": 125.50,
+  "quantity": 4,
+  "customer_tier": "gold",
+  "status": "active",
+  "discount": null,
+  "config": { "region": "LATAM", "pricing": { "margin": 0.15, "minimum": 25 } }
+}`;
+
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name;
+  try { localStorage.setItem("dsqlex-theme", name); } catch (e) {}
+  document.querySelectorAll(".themes button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.theme === name));
+  });
+}
+document.querySelectorAll(".themes button").forEach(b => {
+  b.addEventListener("click", () => applyTheme(b.dataset.theme));
+});
+let savedTheme = "white";
+try { savedTheme = localStorage.getItem("dsqlex-theme") || "white"; } catch (e) {}
+applyTheme(["white", "soft", "dark"].includes(savedTheme) ? savedTheme : "white");
+
+function draftGet(key) {
+  try { return sessionStorage.getItem(key); } catch (e) { return null; }
+}
+function draftSet(key, val) {
+  try { sessionStorage.setItem(key, val); } catch (e) {}
+}
+
+const KW = new Set(["CASE","WHEN","THEN","ELSE","END","SELECT","AND","OR","NOT","LIKE","IN","IS","NULL","TRUE","FALSE","ROUND","COALESCE","NVL","UPPER","LOWER","ABS","CONCAT","EVENT"]);
+
+function highlight(src, target) {
+  target.textContent = "";
+  const frag = document.createDocumentFragment();
+  const push = (cls, text) => {
+    if (!text) return;
+    if (!cls) { frag.appendChild(document.createTextNode(text)); return; }
+    const s = document.createElement("span");
+    s.className = cls;
+    s.textContent = text;
+    frag.appendChild(s);
+  };
+  let i = 0, buf = "";
+  const flush = () => { push(null, buf); buf = ""; };
+  while (i < src.length) {
+    const c = src[i];
+    if (c === "'") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== "'") j++;
+      j = Math.min(j + 1, src.length);
+      flush(); push("tok-str", src.slice(i, j)); i = j; continue;
+    }
+    if (c === "#" || (c === "-" && src[i + 1] === "-")) {
+      let j = src.indexOf("\n", i);
+      if (j === -1) j = src.length;
+      flush(); push("tok-com", src.slice(i, j)); i = j; continue;
+    }
+    if (c === "/" && src[i + 1] === "*") {
+      let j = src.indexOf("*/", i + 2);
+      j = j === -1 ? src.length : j + 2;
+      flush(); push("tok-com", src.slice(i, j)); i = j; continue;
+    }
+    if (/[0-9]/.test(c) || (c === "." && /[0-9]/.test(src[i + 1] || ""))) {
+      const m = src.slice(i).match(/^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?/);
+      flush(); push("tok-num", m[0]); i += m[0].length; continue;
+    }
+    if (/[A-Za-z_]/.test(c)) {
+      let j = i + 1;
+      while (j < src.length && /[A-Za-z0-9_.$]/.test(src[j])) j++;
+      const w = src.slice(i, j);
+      flush();
+      const base = w.split(".")[0].toUpperCase();
+      if (KW.has(w.toUpperCase()) || KW.has(base)) push("tok-kw", w);
+      else if (src[j] === "(") push("tok-fn", w);
+      else push(null, w);
+      i = j; continue;
+    }
+    buf += c; i++;
+  }
+  flush();
+  target.appendChild(frag);
+}
+
+function autoGrow(ta) {
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + "px";
+  syncHighlight();
+}
+
+function syncHighlight() {
+  highlight(exprEl.value, hlEl);
+  hlEl.scrollTop = exprEl.scrollTop;
+  hlEl.scrollLeft = exprEl.scrollLeft;
+}
+
+let escArmed = false;
+function editSelectedLines(ta, fn) {
+  const v = ta.value;
+  const ls = v.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+  let le = v.indexOf("\n", ta.selectionEnd);
+  if (le === -1) le = v.length;
+  if (ta.selectionEnd > ta.selectionStart && v[ta.selectionEnd - 1] === "\n") {
+    le = ta.selectionEnd - 1;
+  }
+  const out = v.slice(ls, le).split("\n").map(fn).join("\n");
+  ta.value = v.slice(0, ls) + out + v.slice(le);
+  ta.setSelectionRange(ls, ls + out.length);
+}
+function editorKeydown(e) {
+  const ta = e.currentTarget || e.target;
+  if (!ta || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.key === "Escape") { escArmed = true; return; }
+  if (e.key !== "Tab") { escArmed = false; return; }
+  if (escArmed) { escArmed = false; return; }
+  e.preventDefault();
+  if (e.shiftKey) {
+    if (ta.selectionStart === ta.selectionEnd) {
+      const v = ta.value, s = ta.selectionStart;
+      const ls = v.lastIndexOf("\n", s - 1) + 1;
+      const removed = Math.min(4, (v.slice(ls).match(/^ */) || [""])[0].length);
+      ta.value = v.slice(0, ls) + v.slice(ls + removed);
+      const ns = Math.max(ls, s - removed);
+      ta.setSelectionRange(ns, ns);
+    } else {
+      editSelectedLines(ta, l => l.replace(/^ {1,4}/, ""));
+    }
+  } else if (ta.selectionStart === ta.selectionEnd) {
+    const s = ta.selectionStart;
+    ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(s);
+    ta.setSelectionRange(s + 4, s + 4);
+  } else {
+    editSelectedLines(ta, l => "    " + l);
+  }
+  autoGrow(ta);
+  onEdit(ta === exprEl);
+}
+
+for (const ta of [exprEl, ctxEl]) {
+  ta.addEventListener("keydown", editorKeydown);
+  ta.addEventListener("blur", () => { escArmed = false; });
+  ta.addEventListener("input", () => {
+    autoGrow(ta);
+    draftSet(ta === exprEl ? "dsqlex-pg-expr" : "dsqlex-pg-ctx", ta.value);
+    onEdit(ta === exprEl);
+  });
+}
+exprEl.addEventListener("scroll", syncHighlight);
+
+let reqId = 0;
+let timer = null;
+let inflight = null;
+
+function showResult(status, text, type) {
+  const box = $("result");
+  const v = $("rvalue");
+  v.textContent = "";
+  box.className = "result" + (status === "ok" || status == null ? "" : " err");
+  if (status === "ok") {
+    v.textContent = text;
+    if (type) {
+      const t = document.createElement("span");
+      t.className = "type";
+      t.textContent = type;
+      v.appendChild(t);
+    }
+  } else {
+    v.textContent = (status ? status.replace(/_/g, " ") + ": " : "") + text;
+  }
+}
+
+function invalidate() {
+  reqId++;
+  clearTimeout(timer);
+  if (inflight) { inflight.abort(); inflight = null; }
+}
+
+function onEdit(exprEdited) {
+  invalidate();
+  if (exprEdited !== false) clearTemplates();
+  if (!exprEl.value.trim()) {
+    showResult(null, "Type an expression to evaluate", null);
+    return;
+  }
+  try { JSON.parse(ctxEl.value); } catch (e) {
+    showResult("context_error", "invalid JSON: " + e.message);
+    return;
+  }
+  showResult(null, "Checking…", null);
+  timer = setTimeout(runEval, 180);
+}
+
+async function runEval() {
+  invalidate();
+  const expr = exprEl.value;
+  const ctxText = ctxEl.value;
+  if (!expr.trim()) {
+    showResult(null, "Type an expression to evaluate", null);
+    return;
+  }
+  try { JSON.parse(ctxText); } catch (e) {
+    showResult("context_error", "invalid JSON: " + e.message);
+    return;
+  }
+  const ctl = new AbortController();
+  inflight = ctl;
+  const id = reqId;
+  try {
+    const res = await fetch("/api/playground/evaluate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expression: expr, context_json: ctxText }),
+      signal: ctl.signal,
+    });
+    if (inflight === ctl) inflight = null;
+    if (id !== reqId) return;
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (id !== reqId) return;
+    if (!data) { showResult("error", "HTTP " + res.status); return; }
+    if (data.status === "ok") showResult("ok", data.value, data.value_type);
+    else showResult(data.status || "error", data.message || "unknown error");
+  } catch (e) {
+    if (e.name === "AbortError") return;
+    if (id === reqId) showResult("error", String(e));
+  }
+}
+
+const tplRow = $("templates");
+function clearTemplates() {
+  tplRow.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+}
+for (const t of globalThis.DSQLEX_TEMPLATES || []) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "ghost";
+  b.textContent = t.label;
+  b.title = t.description;
+  b.dataset.tpl = t.id;
+  b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => {
+    exprEl.value = t.expression;
+    exprEl.focus();
+    autoGrow(exprEl);
+    draftSet("dsqlex-pg-expr", exprEl.value);
+    tplRow.querySelectorAll("button").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.tpl === t.id)));
+    runEval();
+  });
+  tplRow.appendChild(b);
+}
+
+let exprDraft = draftGet("dsqlex-pg-expr");
+if (exprDraft === OLD_DEFAULT_EXPR) exprDraft = null;
+exprEl.value = exprDraft ?? DEFAULT_EXPR;
+ctxEl.value = draftGet("dsqlex-pg-ctx") ?? DEFAULT_CTX;
+autoGrow(exprEl);
+autoGrow(ctxEl);
+syncHighlight();
+runEval();
+</script>
+</body>
+</html>

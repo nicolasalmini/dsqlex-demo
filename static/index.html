@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="white">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSQLEX Data Workbench</title>
+<style>
+  :root {
+    --mono: "Adwaita Mono", "DejaVu Sans Mono", ui-monospace, Consolas, monospace;
+    --sans: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  html[data-theme="white"] {
+    --bg:#FFFFFF; --panel:#FFFFFF; --panel-2:#F7F9FB; --border:#D5DDE6; --border-strong:#B9C5D2;
+    --fg:#14243A; --muted:#4E6076; --accent:#2457C5; --accent-ink:#FFFFFF; --teal:#087F72;
+    --ok:#0B7A54; --err:#B42318; --field:#FFFFFF; --focus:#2457C5;
+  }
+  html[data-theme="soft"] {
+    --bg:#F2F5F8; --panel:#FFFFFF; --panel-2:#EDF1F6; --border:#C9D4E0; --border-strong:#AAB8C8;
+    --fg:#14243A; --muted:#4E6076; --accent:#2457C5; --accent-ink:#FFFFFF; --teal:#087F72;
+    --ok:#0B7A54; --err:#B42318; --field:#FFFFFF; --focus:#2457C5;
+  }
+  html[data-theme="dark"] {
+    --bg:#0F1420; --panel:#1A2233; --panel-2:#131B2A; --border:#2A3550; --border-strong:#3A4A6E;
+    --fg:#E6EBF5; --muted:#8B98B5; --accent:#5B93FF; --accent-ink:#0B1020; --teal:#2FD4C0;
+    --ok:#3ECF8E; --err:#FF6B6B; --field:#0D1220; --focus:#5B93FF;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body { font-family:var(--sans); font-size:16px; background:var(--bg); color:var(--fg);
+         line-height:1.45; overflow-x:hidden; }
+  :focus-visible { outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+
+  header.top {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:10px 20px; border-bottom:1px solid var(--border); background:var(--panel);
+  }
+  .brand { font-weight:700; font-size:18px; letter-spacing:.02em; }
+  .brand span { color:var(--teal); }
+  .navlinks { display:flex; gap:4px; }
+  .navlinks a { color:var(--muted); text-decoration:none; font-size:14px; padding:5px 12px; border-radius:6px; }
+  .navlinks a[aria-current="page"] { color:var(--fg); font-weight:600; background:var(--panel-2); }
+  .navlinks a:hover { color:var(--accent); }
+  .statusline { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.on { background:var(--ok); }
+  .themes { margin-left:auto; display:flex; gap:4px; border:1px solid var(--border); border-radius:8px; padding:3px; background:var(--panel-2); }
+  .themes button {
+    border:0; background:transparent; color:var(--fg); font:inherit; font-size:14px;
+    padding:5px 14px; border-radius:6px; cursor:pointer;
+  }
+  .themes button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); font-weight:600; }
+
+  main { padding:20px; display:flex; flex-direction:column; gap:18px; max-width:1500px; margin:0 auto; }
+
+  section.panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
+  section.panel.expr { max-width:900px; width:100%; margin-inline:auto; }
+  h2.pane { margin:0 0 10px; font-size:18px; font-weight:600; color:var(--fg); }
+  h2.pane small { color:var(--muted); font-weight:400; font-size:14px; margin-left:8px; }
+
+  textarea#expr {
+    width:100%; min-height:124px; resize:vertical;
+    background:var(--field); color:var(--fg); border:1px solid var(--border-strong);
+    border-radius:8px; padding:12px; font-family:var(--mono); font-size:15px; line-height:1.5;
+  }
+  .resizehint { text-align:right; font-size:12px; color:var(--muted); margin-top:4px; user-select:none; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  button.act {
+    background:var(--accent); color:var(--accent-ink); border:0; border-radius:8px;
+    padding:9px 20px; font:inherit; font-size:15px; font-weight:600; cursor:pointer;
+  }
+  button.ghost {
+    background:var(--panel-2); color:var(--fg); border:1px solid var(--border-strong);
+    border-radius:8px; padding:9px 16px; font:inherit; font-size:14px; cursor:pointer;
+  }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .hint { font-size:13px; color:var(--muted); margin-top:10px; line-height:1.55; }
+  .hint code { background:var(--panel-2); border:1px solid var(--border); padding:1px 6px; border-radius:4px; font-family:var(--mono); }
+  details { display:inline; }
+  details[open] { display:block; margin-top:6px; }
+  summary { display:inline; cursor:pointer; color:var(--accent); }
+
+  .band {
+    display:flex; align-items:stretch; gap:0; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  }
+  .band .ctl { padding:14px 18px; display:flex; flex-direction:column; gap:8px; flex:1 1 420px; min-width:280px; }
+  .band .stat { padding:14px 18px; border-left:1px solid var(--border); min-width:110px; display:flex; flex-direction:column; justify-content:center; }
+  .band .stat.big { background:var(--panel-2); min-width:170px; border-left:1px solid var(--border); }
+  .stat .label { font-size:14px; color:var(--muted); }
+  .stat .value { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono); }
+  .stat.big .value { font-size:36px; color:var(--teal); }
+  .keyhint { font-size:12px; color:var(--muted); margin-top:6px; }
+  #msg { font-size:14px; min-height:20px; padding:10px 18px; border-top:1px solid var(--border); display:none; flex-basis:100%; }
+  #msg.error { color:var(--err); display:block; } #msg.ok { color:var(--ok); display:block; }
+  .paths { font-size:13px; color:var(--muted); font-family:var(--mono); word-break:break-all;
+           padding:8px 18px 12px; border-top:1px solid var(--border); flex-basis:100%; }
+  .paths:empty { display:none; }
+
+  .flow { display:grid; grid-template-columns:minmax(0,1fr) clamp(112px,12vw,200px) minmax(0,1fr); gap:0; align-items:stretch; }
+  .gutter {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    color:var(--muted); padding:10px 4px; text-align:center;
+  }
+  .gutter .arrow { font-size:22px; color:var(--teal); }
+  .gutter .ver { font-size:12px; font-family:var(--mono); }
+  .tablewrap { overflow:auto; max-height:320px; border:1px solid var(--border); border-radius:8px; background:var(--field); }
+  table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:15px; }
+  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--border);
+           white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; background:var(--panel-2); position:sticky; top:0; }
+  td.err { color:var(--err); }
+
+  @media (max-width:1000px) {
+    .flow { grid-template-columns:minmax(0,1fr); }
+    .gutter { flex-direction:row; padding:6px; }
+    .gutter .arrow { transform:rotate(90deg); }
+    .band .stat { border-left:0; border-top:1px solid var(--border); min-width:45%; }
+    .band .stat.big { border-left:0; }
+    main { padding:12px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">DSQLEX <span>workbench</span></div>
+  <nav class="navlinks" aria-label="Pages">
+    <a href="/" aria-current="page">Pipeline</a>
+    <a href="/playground">Playground</a>
+  </nav>
+  <div class="statusline"><span class="dot" id="dot"></span><span id="status">stopped</span>
+    <span aria-hidden="true">&middot;</span> <span>local CSV only</span></div>
+  <div class="themes" role="group" aria-label="Theme">
+    <button type="button" data-theme="white" aria-pressed="true">White</button>
+    <button type="button" data-theme="soft" aria-pressed="false">Soft</button>
+    <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+  </div>
+</header>
+<main>
+  <section class="panel expr" aria-labelledby="exprh">
+    <h2 class="pane" id="exprh">Rule expression <small>evaluated per row against CSV columns</small></h2>
+    <textarea id="expr" spellcheck="false" aria-label="Rule expression"></textarea>
+    <div class="resizehint" aria-hidden="true">drag corner to resize &#x2198;</div>
+    <div class="row">
+      <button class="act" id="apply">Apply rule</button>
+      <button class="ghost" id="fmt">Format rule</button>
+    </div>
+    <div class="row" id="templates" role="group" aria-label="Expression templates"></div>
+    <div class="keyhint">Tab indents (4 spaces); Shift+Tab outdents; Esc, then Tab leaves the editor.</div>
+    <div class="hint">
+      <code>CASE WHEN cond THEN expr [WHEN ...] ELSE expr END</code> — applied at the next batch boundary.
+      <details><summary>Expression syntax</summary>
+        Parentheses are supported in conditions and arithmetic, e.g.
+        <code>(country = 'Brazil') AND (amount &gt; 100)</code>. String literals use single quotes;
+        columns are available as variables (<code>amount</code> is numeric, others are strings).
+        Each output row records the rule version used to evaluate it.
+      </details>
+    </div>
+  </section>
+
+  <section class="band" aria-label="Pipeline controls and metrics">
+    <div class="ctl">
+      <div class="row" style="margin-top:0">
+        <button class="act" id="start">Start</button>
+        <button class="ghost" id="stop">Stop</button>
+      </div>
+      <div class="hint" style="margin-top:0">Local UTF-8 CSV only. Generated sample: 250k rows.
+        Output: two rotating 50k-row files.
+        <details><summary>Input &amp; output details</summary>
+          Source is the generated <code>data/sample-250k.csv</code> with columns
+          <code>country, amount, category</code> (<code>country</code> and <code>amount</code> are
+          required; extra columns are allowed). Output appends
+          <code>result, rule_version, error, cycle</code> to the source columns and rotates across
+          two slot files (50,000 records each) inside a per-process
+          <code>data/output-&lt;pid&gt;-&lt;n&gt;/</code> directory; directories from previous runs are kept.
+        </details>
+      </div>
+    </div>
+    <div class="stat big"><div class="label">End-to-end TPS</div><div class="value" id="tps">0</div></div>
+    <div class="stat"><div class="label">Total rows</div><div class="value" id="rows">0</div></div>
+    <div class="stat"><div class="label">Errors</div><div class="value" id="errors">0</div></div>
+    <div class="stat"><div class="label">Cycles</div><div class="value" id="cycles">0</div></div>
+    <div class="stat"><div class="label">Rule version req/applied</div><div class="value"><span id="rver">0</span>/<span id="aver">0</span></div></div>
+    <div id="msg"></div>
+    <div class="paths" id="paths"></div>
+  </section>
+  <div class="hint" style="margin-top:-8px">End-to-end TPS covers the whole pipeline — file read, expression
+    evaluation, CSV write — sampled once per second server-side. It is not a DSQLEX-engine-only benchmark.</div>
+
+  <section class="flow" aria-label="Row previews">
+    <div class="panel" style="border:0;padding:0;background:transparent">
+      <h2 class="pane">Source preview <small>latest 12 input rows</small></h2>
+      <div class="tablewrap"><table id="src"></table></div>
+    </div>
+    <div class="gutter" aria-hidden="true">
+      <div class="arrow">&#x27F6;</div>
+      <div class="ver" id="gver">rule v1</div>
+    </div>
+    <div class="panel" style="border:0;padding:0;background:transparent">
+      <h2 class="pane">Result preview <small>country, result, rule_version, error, cycle</small></h2>
+      <div class="tablewrap"><table id="dst"></table></div>
+    </div>
+  </section>
+</main>
+<script src="/templates.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const RESULT_COLS = ["country", "result", "rule_version", "error", "cycle"];
+let msgTimer = null;
+let lastErrorShown = "";
+
+function setMsg(text, isErr) {
+  const m = $("msg");
+  m.textContent = text || "";
+  m.className = text ? (isErr ? "error" : "ok") : "";
+  clearTimeout(msgTimer);
+  if (text && !isErr) msgTimer = setTimeout(() => { m.textContent = ""; m.className = ""; }, 8000);
+}
+
+function renderTable(el, headers, rows, project) {
+  el.textContent = "";
+  const idx = project || headers.map((_, i) => i);
+  if (idx.length) {
+    const tr = document.createElement("tr");
+    for (const i of idx) {
+      const th = document.createElement("th");
+      th.textContent = headers[i] || "";
+      tr.appendChild(th);
+    }
+    el.appendChild(tr);
+  }
+  if (!rows || rows.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.textContent = "(no rows yet)";
+    tr.appendChild(td); el.appendChild(tr);
+    return;
+  }
+  const errCol = headers.indexOf("error");
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    for (const i of idx) {
+      const td = document.createElement("td");
+      const v = i < r.length ? r[i] : "";
+      td.textContent = v;
+      if (i === errCol && v) td.className = "err";
+      tr.appendChild(td);
+    }
+    el.appendChild(tr);
+  }
+}
+
+async function api(url, body) {
+  try {
+    const opts = body === undefined ? {} : {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    };
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (!res.ok) { setMsg(data.error || ("HTTP " + res.status), true); return null; }
+    return data;
+  } catch (e) { setMsg(String(e), true); return null; }
+}
+
+function render(s) {
+  $("status").textContent = s.running ? "running" : "stopped";
+  $("dot").className = "dot" + (s.running ? " on" : "");
+  $("tps").textContent = s.tps.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  $("rows").textContent = s.rows.toLocaleString();
+  $("errors").textContent = s.errors.toLocaleString();
+  $("cycles").textContent = s.cycles.toLocaleString();
+  $("rver").textContent = s.requested_version;
+  $("aver").textContent = s.applied_version;
+  $("gver").textContent = "rule v" + s.applied_version;
+  $("start").disabled = s.running;
+  $("stop").disabled = !s.running;
+  const paths = [];
+  if (s.input_path) {
+    paths.push("input: " + s.input_path);
+    for (const p of s.output_paths || []) paths.push("output slot: " + p);
+  }
+  $("paths").textContent = paths.join("    ");
+  renderTable($("src"), s.source_headers || [], s.source_preview);
+  const rh = s.result_headers || [];
+  const project = RESULT_COLS.map(c => rh.indexOf(c)).filter(i => i >= 0);
+  renderTable($("dst"), rh, s.destination_preview, project);
+  if (s.last_error && s.last_error !== lastErrorShown) {
+    lastErrorShown = s.last_error;
+    setMsg(s.last_error, true);
+  } else if (!s.last_error) {
+    lastErrorShown = "";
+  }
+  if (document.activeElement !== $("expr") && $("expr").dataset.touched !== "1") {
+    $("expr").value = s.expression;
+  }
+}
+
+async function pollLoop() {
+  const s = await api("/api/state");
+  if (s) render(s);
+  setTimeout(pollLoop, 500);
+}
+
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name;
+  try { localStorage.setItem("dsqlex-theme", name); } catch (e) {}
+  document.querySelectorAll(".themes button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.theme === name));
+  });
+}
+
+document.querySelectorAll(".themes button").forEach(b => {
+  b.addEventListener("click", () => applyTheme(b.dataset.theme));
+});
+let saved = "white";
+try { saved = localStorage.getItem("dsqlex-theme") || "white"; } catch (e) {}
+applyTheme(["white", "soft", "dark"].includes(saved) ? saved : "white");
+
+const FMT_SKIP_MSG = "Formatting skipped: comments or an unfinished string; edit manually.";
+
+function formatRuleText(src) {
+  const fail = { ok: false, text: src, message: FMT_SKIP_MSG };
+  const input = src.trim();
+  if (!input) return { ok: true, text: "", message: "" };
+  const tokens = [];
+  const n = input.length;
+  let i = 0;
+  while (i < n) {
+    const c = input[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === "'") {
+      const j = input.indexOf("'", i + 1);
+      if (j === -1) return fail;
+      tokens.push({ t: "lit", v: input.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+    if (c === "#" || (c === "-" && input[i + 1] === "-") || (c === "/" && input[i + 1] === "*")) {
+      return fail;
+    }
+    if (/[A-Za-z0-9_.$]/.test(c)) {
+      let j = i + 1;
+      while (j < n && /[A-Za-z0-9_.$]/.test(input[j])) j++;
+      tokens.push({ t: "w", v: input.slice(i, j) });
+      i = j;
+      continue;
+    }
+    if (/[=<>!]/.test(c)) {
+      let j = i + 1;
+      while (j < n && /[=<>!]/.test(input[j])) j++;
+      tokens.push({ t: "op", v: input.slice(i, j) });
+      i = j;
+      continue;
+    }
+    tokens.push({ t: "op", v: c });
+    i++;
+  }
+  if (!tokens.some(t => t.t === "w" && /^case$/i.test(t.v))) {
+    return { ok: true, text: input, message: "" };
+  }
+  const KW = /^(case|when|else|end)$/i;
+  const UPPER = /^(then|and|or|not|like|in|is|null)$/i;
+  const lines = [];
+  let line = "";
+  let depth = 0;
+  const pad = () => "    ".repeat(depth);
+  const flush = () => { if (line !== "") { lines.push(line); line = ""; } };
+  const append = v => {
+    const tight =
+      line === "" || line.endsWith("(") || v === ")" || v === "," ||
+      (v === "(" && /[A-Za-z0-9_.$]$/.test(line));
+    line += tight ? v : " " + v;
+  };
+  for (const tok of tokens) {
+    if (tok.t === "w" && KW.test(tok.v)) {
+      const kw = tok.v.toUpperCase();
+      if (kw === "CASE") { append("CASE"); depth++; continue; }
+      if (kw === "END") {
+        flush();
+        depth = Math.max(0, depth - 1);
+        line = pad() + "END";
+        continue;
+      }
+      if (depth > 0) { flush(); line = pad() + kw; continue; }
+      append(kw);
+      continue;
+    }
+    append(tok.t === "w" && UPPER.test(tok.v) ? tok.v.toUpperCase() : tok.v);
+  }
+  flush();
+  return { ok: true, text: lines.join("\n"), message: "" };
+}
+
+let escArmed = false;
+
+function editSelectedLines(ta, fn) {
+  const v = ta.value;
+  const ls = v.lastIndexOf("\n", ta.selectionStart - 1) + 1;
+  let le = v.indexOf("\n", ta.selectionEnd);
+  if (le === -1) le = v.length;
+  if (ta.selectionEnd > ta.selectionStart && v[ta.selectionEnd - 1] === "\n") {
+    le = ta.selectionEnd - 1;
+  }
+  const out = v.slice(ls, le).split("\n").map(fn).join("\n");
+  ta.value = v.slice(0, ls) + out + v.slice(le);
+  ta.setSelectionRange(ls, ls + out.length);
+}
+
+function editorKeydown(e) {
+  const ta = e.currentTarget || e.target;
+  if (!ta || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.key === "Escape") { escArmed = true; return; }
+  if (e.key !== "Tab") { escArmed = false; return; }
+  if (escArmed) { escArmed = false; return; }
+  e.preventDefault();
+  if (e.shiftKey) {
+    if (ta.selectionStart === ta.selectionEnd) {
+      const v = ta.value;
+      const s = ta.selectionStart;
+      const ls = v.lastIndexOf("\n", s - 1) + 1;
+      const removed = Math.min(4, (v.slice(ls).match(/^ */) || [""])[0].length);
+      ta.value = v.slice(0, ls) + v.slice(ls + removed);
+      const ns = Math.max(ls, s - removed);
+      ta.setSelectionRange(ns, ns);
+    } else {
+      editSelectedLines(ta, l => l.replace(/^ {1,4}/, ""));
+    }
+  } else if (ta.selectionStart === ta.selectionEnd) {
+    const s = ta.selectionStart;
+    ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(s);
+    ta.setSelectionRange(s + 4, s + 4);
+  } else {
+    editSelectedLines(ta, l => "    " + l);
+  }
+  ta.dataset.touched = "1";
+}
+
+$("expr").addEventListener("keydown", editorKeydown);
+$("expr").addEventListener("blur", () => { escArmed = false; });
+$("expr").addEventListener("input", () => {
+  $("expr").dataset.touched = "1";
+  clearTemplates();
+});
+
+const tplRow = $("templates");
+function clearTemplates() {
+  tplRow.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+}
+for (const t of globalThis.DSQLEX_TEMPLATES || []) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "ghost";
+  b.textContent = t.label;
+  b.title = t.description;
+  b.dataset.tpl = t.id;
+  b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => {
+    const ta = $("expr");
+    ta.value = t.expression;
+    ta.dataset.touched = "1";
+    ta.focus();
+    const grow = Math.min(300, ta.scrollHeight || 0);
+    if (grow && ta.clientHeight < grow) ta.style.height = grow + "px";
+    tplRow.querySelectorAll("button").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.tpl === t.id)));
+    setMsg(t.label + " loaded; click Apply rule to use it.", false);
+  });
+  tplRow.appendChild(b);
+}
+$("fmt").addEventListener("click", () => {
+  const ta = $("expr");
+  const r = formatRuleText(ta.value);
+  ta.dataset.touched = "1";
+  ta.focus();
+  if (!r.ok) { setMsg(r.message, true); return; }
+  ta.value = r.text;
+  const grow = Math.min(300, ta.scrollHeight || 0);
+  if (grow && ta.clientHeight < grow) ta.style.height = grow + "px";
+  setMsg("Formatted; click Apply rule to use it.", false);
+});
+$("apply").addEventListener("click", async () => {
+  const s = await api("/api/rule", { expression: $("expr").value });
+  if (s) { setMsg("Rule v" + s.requested_version + " accepted (applied: v" + s.applied_version + ")", false); render(s); }
+});
+$("start").addEventListener("click", async () => {
+  const s = await api("/api/start", {});
+  if (s) { setMsg("Pipeline started", false); render(s); }
+});
+$("stop").addEventListener("click", async () => {
+  const s = await api("/api/stop", {});
+  if (s) { setMsg("Stop requested", false); render(s); }
+});
+
+pollLoop();
+</script>
+</body>
+</html>

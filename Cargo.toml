@@ -1,0 +1,17 @@
+[package]
+name = "dsqlex-demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+csv = "1.4.0"
+dsqlex = { git = "https://github.com/nicolasalmini/dsqlex-rs", rev = "c06e0149c0ea63ab446c0d94759726db6817de72", version = "0.1.0" }
+rust_decimal = "1.43.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["arbitrary_precision"] }
+tokio = { version = "1.53.1", features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+tower = { version = "0.5.3", features = ["util"] }
